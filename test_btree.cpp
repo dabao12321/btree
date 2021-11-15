@@ -73,13 +73,13 @@ void test_btree_unordered_insert(uint64_t max_size, std::seed_seq &seed) {
   for (uint32_t i = 1; i < max_size; i++) {
     s.insert(data[i]);
     inserted_data.insert(data[i]);
-    if (i >= 2) {
-      auto node = s.find(data[2]);
-      if (node == nullptr) {
-        printf("\ncan't find second elem after inserting elem %u\n", i);
-        exit(0);
-      }
-    }
+    // if (i >= 2) {
+    //   auto node = s.find(data[2]);
+    //   if (node == nullptr) {
+    //     printf("\ncan't find second elem after inserting elem %u\n", i);
+    //     exit(0);
+    //   }
+    // }
   }
   // end = get_usecs();
 
