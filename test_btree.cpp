@@ -5,7 +5,13 @@
 #include <algorithm>
 #include <functional>
 #include <set>
+#include <sys/time.h>
 
+static long get_usecs() {
+    struct timeval st;
+    gettimeofday(&st,NULL);
+    return st.tv_sec*1000000 + st.tv_usec;
+}
 
 template <class T>
 std::vector<T> create_random_data(size_t n, size_t max_val,
@@ -26,13 +32,14 @@ template <class T> void test_btree_ordered_insert(uint64_t max_size) {
   }
   uint64_t start, end;
   BTree<T, T> s;
-  // start = get_usecs();
+  start = get_usecs();
   for (uint32_t i = 1; i < max_size; i++) {
     s.insert(i);
   }
-  // end = get_usecs();
-  printf("insertion,\t %lu,", end - start);
+  end = get_usecs();
+  printf("\ninsertion,\t %lu,", end - start);
 
+  start = get_usecs();
   for (uint32_t i = 1; i < max_size; i++) {
     auto node = s.find(i);
     if (node == nullptr) {
@@ -40,8 +47,10 @@ template <class T> void test_btree_ordered_insert(uint64_t max_size) {
       exit(0);
     }
   }
+  end = get_usecs();
+  printf("\nfind all,\t %lu,", end - start);
 
-  // start = get_usecs();
+  start = get_usecs();
   uint64_t sum = 0;
   auto it = s.begin();
   while (!it.done()) {
@@ -49,13 +58,13 @@ template <class T> void test_btree_ordered_insert(uint64_t max_size) {
     sum += el;
     ++it;
   }
-  // end = get_usecs();
-  printf("\tsum_time with iterator, \t%lu, \tsum_total, \t%lu, \t", end - start,
+  end = get_usecs();
+  printf("\nsum_time with iterator, \t%lu, \tsum_total, \t%lu, \t", end - start,
          sum);
-  // start = get_usecs();
+  start = get_usecs();
   sum = s.sum();
-  // end = get_usecs();
-  printf("sum_time, %lu, sum_total, %lu\n", end - start, sum);
+  end = get_usecs();
+  printf("\nsum_time, %lu, sum_total, %lu\n", end - start, sum);
 }
 
 template <class T>
@@ -65,28 +74,22 @@ void test_btree_unordered_insert(uint64_t max_size, std::seed_seq &seed) {
   }
   std::vector<T> data =
       create_random_data<T>(max_size, std::numeric_limits<T>::max(), seed);
-  std::set<T> inserted_data;
+  // std::set<T> inserted_data;
 
   uint64_t start, end;
   BTree<T, T> s;
-  // start = get_usecs();
+  start = get_usecs();
   for (uint32_t i = 1; i < max_size; i++) {
     s.insert(data[i]);
-    inserted_data.insert(data[i]);
-    // if (i >= 2) {
-    //   auto node = s.find(data[2]);
-    //   if (node == nullptr) {
-    //     printf("\ncan't find second elem after inserting elem %u\n", i);
-    //     exit(0);
-    //   }
-    // }
+    // inserted_data.insert(data[i]);
   }
-  // end = get_usecs();
+  end = get_usecs();
 
 
-  printf("\ninsertion,\t %lu,", s.sum());
-  printf("\ncorrect sum: ,\t %lu,", std::accumulate(inserted_data.begin(), inserted_data.end(), 0L));
+  printf("\ninsertion,\t %lu,", end - start);
+  // printf("\ncorrect sum: ,\t %lu,", std::accumulate(inserted_data.begin(), inserted_data.end(), 0L));
 
+  start = get_usecs();
   for (uint32_t i = 1; i < max_size; i++) {
     auto node = s.find(data[i]);
     if (node == nullptr) {
@@ -94,7 +97,10 @@ void test_btree_unordered_insert(uint64_t max_size, std::seed_seq &seed) {
       exit(0);
     }
   }
-  // start = get_usecs();
+  end = get_usecs();
+  printf("\nfind all,\t %lu,", end - start);
+
+  start = get_usecs();
   uint64_t sum = 0;
   auto it = s.begin();
   while (!it.done()) {
@@ -103,17 +109,20 @@ void test_btree_unordered_insert(uint64_t max_size, std::seed_seq &seed) {
     ++it;
   }
   
-  // end = get_usecs();
-  printf("\tsum_time with iterator, \t%lu, \tsum_total, \t%lu, \t", end - start,
+  end = get_usecs();
+  printf("\nsum_time with iterator, \t%lu, \tsum_total, \t%lu, \t", end - start,
          sum);
-  // start = get_usecs();
+  start = get_usecs();
   sum = s.sum();
-  // end = get_usecs();
-  printf("sum_time, %lu, sum_total, %lu\n", end - start, sum);
+  end = get_usecs();
+  printf("\nsum_time, %lu, sum_total, %lu\n", end - start, sum);
 }
 
 int main() {
-
+  // test_btree_ordered_insert<uint32_t>(129);
   std::seed_seq seed{0};
-  test_btree_unordered_insert<uint32_t>(1000, seed);
+  printf("------- ORDERED INSERT --------");
+  test_btree_ordered_insert<uint64_t>(100000000);
+  printf("------- UNORDERED INSERT --------");
+  test_btree_unordered_insert<uint64_t>(100000000, seed);
 }

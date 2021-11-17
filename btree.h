@@ -23,7 +23,7 @@
 
 #define WEIGHTED 0
 
-#define MIN_KEYS 64
+#define MIN_KEYS 4
 #define MAX_KEYS (2 * MIN_KEYS - 1)
 #define MAX_CHILDREN (2 * MIN_KEYS)
 
@@ -166,12 +166,31 @@ template <class T, class W> W BTreeNode<T, W>::get_val(T k) const {
 }
 #endif
 
+// template <class T, class W>
+// const uint32_t BTreeNode<T, W>::binarySearch(T x) {
+//   uint32_t left = 0;
+//   uint32_t right = num_keys - 1;
+//   while (left <= right) {
+//     int mid = left + (right - left) / 2;
+
+//     if (keys[mid] == x) {
+//       return -1;
+//     } else if (keys[mid] < x) {
+//       left = mid + 1;
+//     } else {
+//       right = mid - 1;
+//     }
+//   }
+//   return left;
+// }
+
 template <class T, class W>
 const BTreeNode<T, W> *BTreeNode<T, W>::find(T k) const {
   uint32_t i = 0;
   while (i < num_keys && k > keys[i])
     i++;
 
+  // std::cout << "num keys " << num_keys << " found i " << i << std::endl;
   if (keys[i] == k)
     return this;
 
