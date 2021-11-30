@@ -41,6 +41,7 @@ template <class T> void test_btree_ordered_insert(uint64_t max_size) {
 
   start = get_usecs();
   for (uint32_t i = 1; i < max_size; i++) {
+    printf("\nfinding %u", i);
     auto node = s.find(i);
     if (node == nullptr) {
       printf("\ncouldn't find data in btree at index %u\n", i);
@@ -122,7 +123,7 @@ int main() {
   // test_btree_ordered_insert<uint32_t>(129);
   std::seed_seq seed{0};
   printf("------- ORDERED INSERT --------");
-  test_btree_ordered_insert<uint64_t>(100000000);
+  test_btree_ordered_insert<uint64_t>(1000);
   printf("------- UNORDERED INSERT --------");
-  test_btree_unordered_insert<uint64_t>(100000000, seed);
+  // test_btree_unordered_insert<uint64_t>(100000000, seed);
 }

@@ -187,13 +187,41 @@ template <class T, class W> W BTreeNode<T, W>::get_val(T k) const {
 template <class T, class W>
 const BTreeNode<T, W> *BTreeNode<T, W>::find(T k) const {
   uint32_t i = 0;
+  printf("\n start bsing");
+  uint32_t left = 0;
+  uint32_t right = num_keys - 1;
+  std::cout << num_keys << " " << keys[0] << " " << k;
+  while (left <= right) {
+    int mid = left + (right - left) / 2;
+
+    if (keys[mid] == k) {
+      left = -1;
+      break;
+    } else if (keys[mid] < k) {
+      left = mid + 1;
+    } else {
+      if (mid == 0) {
+	break;
+      }
+      right = mid - 1;
+    }
+  }
+  printf("\n finished bsing");
+
   while (i < num_keys && k > keys[i])
     i++;
 
-  // std::cout << "num keys " << num_keys << " found i " << i << std::endl;
-  if (keys[i] == k)
-    return this;
 
+  if (keys[i] == k) {
+    if (left != -1) {
+      printf("\nbad binary search! i = %u, bs_i = %u", i, left);
+    }
+    return this;
+  }
+  if (left != i) {
+    printf("\nbad binary search! i = %u, bs_i = %u", i, left);
+  }
+  // std::cout << "num keys " << num_keys << " found i " << i << std::endl;
   if (is_leaf)
     return nullptr;
 
