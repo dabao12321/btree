@@ -20,10 +20,11 @@
 #include <vector>
 
 // #include "parallel.h"
+#define DEBUG 0
 
 #define WEIGHTED 0
 
-#define MIN_KEYS 4
+#define MIN_KEYS 64
 #define MAX_KEYS (2 * MIN_KEYS - 1)
 #define MAX_CHILDREN (2 * MIN_KEYS)
 
@@ -166,37 +167,20 @@ template <class T, class W> W BTreeNode<T, W>::get_val(T k) const {
 }
 #endif
 
-// template <class T, class W>
-// const uint32_t BTreeNode<T, W>::binarySearch(T x) {
-//   uint32_t left = 0;
-//   uint32_t right = num_keys - 1;
-//   while (left <= right) {
-//     int mid = left + (right - left) / 2;
-
-//     if (keys[mid] == x) {
-//       return -1;
-//     } else if (keys[mid] < x) {
-//       left = mid + 1;
-//     } else {
-//       right = mid - 1;
-//     }
-//   }
-//   return left;
-// }
 
 template <class T, class W>
 const BTreeNode<T, W> *BTreeNode<T, W>::find(T k) const {
-  uint32_t i = 0;
-  printf("\n start bsing");
   uint32_t left = 0;
   uint32_t right = num_keys - 1;
-  std::cout << num_keys << " " << keys[0] << " " << k;
   while (left <= right) {
     int mid = left + (right - left) / 2;
-
     if (keys[mid] == k) {
+#if DEBUG
       left = -1;
       break;
+#else
+      return this;
+#endif
     } else if (keys[mid] < k) {
       left = mid + 1;
     } else {
@@ -206,12 +190,12 @@ const BTreeNode<T, W> *BTreeNode<T, W>::find(T k) const {
       right = mid - 1;
     }
   }
-  printf("\n finished bsing");
 
+#if DEBUG
+  uint32_t i = 0;
   while (i < num_keys && k > keys[i])
     i++;
-
-
+  
   if (keys[i] == k) {
     if (left != -1) {
       printf("\nbad binary search! i = %u, bs_i = %u", i, left);
@@ -220,12 +204,18 @@ const BTreeNode<T, W> *BTreeNode<T, W>::find(T k) const {
   }
   if (left != i) {
     printf("\nbad binary search! i = %u, bs_i = %u", i, left);
-  }
-  // std::cout << "num keys " << num_keys << " found i " << i << std::endl;
+  }  
   if (is_leaf)
     return nullptr;
 
   return children[i]->find(k);
+#endif
+
+  // std::cout << "num keys " << num_keys << " found i " << i << std::endl;
+  if (is_leaf)
+    return nullptr;
+
+  return children[left]->find(k);
 }
 
 template <class T, class W> void BTreeNode<T, W>::traverse() const {
@@ -302,10 +292,39 @@ bool BTreeNode<T, W>::insertNonFull(T k) {
 #endif
   // Initialize index as index of rightmost element
   uint32_t idx;
+  uint32_t left = 0;
+  uint32_t right = num_keys - 1;
+  while (left <= right) {
+    int mid = left + (right - left) / 2;
+    if (keys[mid] == k) {
+#if DEBUG
+      left = -1;
+      break;
+#else
+  #if WEIGHTED
+        weights[mid] = w;
+  #endif
+      return false;
+#endif
+    } else if (keys[mid] < k) {
+      left = mid + 1;
+    } else {
+      if (mid == 0) {
+        break;
+      }
+      right = mid - 1;
+    }
+  }
+
+  // idx = left;
+#if DEBUG
   for (idx = 0; idx < num_keys; idx++) {
     if (keys[idx] < k)
       continue;
     else if (k == keys[idx]) {
+      if (left != idx) {
+        printf("\nbad binary search! i = %u, bs_i = %u", idx, left);
+      }
 #if WEIGHTED
       weights[idx] = w;
 #endif
@@ -313,6 +332,15 @@ bool BTreeNode<T, W>::insertNonFull(T k) {
     } else
       break;
   }
+
+  if (left != idx) {
+    printf("\nbad binary search! i = %u, bs_i = %u", idx, left);
+  }
+#else
+  idx = left;
+#endif
+
+
 
   if (is_leaf) { // If this is a leaf node
     memmove(&keys[idx + 1], &keys[idx], (MAX_KEYS - idx - 1) * sizeof(keys[0]));
