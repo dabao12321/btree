@@ -1,6 +1,6 @@
 TARGET := test_btree 
 CXX = clang++ -std=c++17
-CXXFLAGS = -Wall -g -m64 -I. 
+CXXFLAGS = -O3 -march=native -Wall -g -m64 -I. 
 
 ifeq ($(CILK),1)
   CXXFLAGS += -fcilkplus

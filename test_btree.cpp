@@ -121,8 +121,8 @@ void test_btree_unordered_insert(uint64_t max_size, std::seed_seq &seed) {
 int main() {
   // test_btree_ordered_insert<uint32_t>(129);
   std::seed_seq seed{0};
-  printf("------- ORDERED INSERT --------");
-  test_btree_ordered_insert<uint64_t>(100000000);
+  // printf("------- ORDERED INSERT --------");
+  // test_btree_ordered_insert<uint64_t>(100000000);
   printf("------- UNORDERED INSERT --------");
   test_btree_unordered_insert<uint64_t>(100000000, seed);
 }
