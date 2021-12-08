@@ -32,6 +32,7 @@ template <class T, class W> class BTreeNode {
 public:
   BTreeNode(bool is_leaf);
   const uint32_t find_index(T k) const;
+  const uint32_t find_index_branchless(T k) const;
   const BTreeNode<T, W> *find(T k) const;
 #if WEIGHTED
   W get_val(T k) const;
@@ -189,8 +190,29 @@ const uint32_t BTreeNode<T, W>::find_index(T k) const {
 }
 
 template <class T, class W>
+const uint32_t BTreeNode<T, W>::find_index_branchless(T k) const {
+  
+  intptr_t pos = -1;
+  intptr_t logstep = 32 - __builtin_clz(num_keys) - 1; // bsr
+
+  // special first iteration to make power of 2 intervals
+  intptr_t step = num_keys + 1 - uint32_t(intptr_t(1) << logstep);
+  pos = (keys[pos + step] < k ? pos + step : pos);
+  step = uint32_t(intptr_t(1) << (logstep - 1));
+
+  while (step > 0) {
+    pos = (keys[pos + step] < k ? pos + step : pos);
+    step >>= 1;
+  }
+  return pos + 1;
+}
+
+template <class T, class W>
 const BTreeNode<T, W> *BTreeNode<T, W>::find(T k) const {
-  uint32_t idx = find_index(k);
+
+  // uint32_t idx = find_index(k);
+  // uint32_t idx_branchless = find_index_branchless(k);
+  uint32_t idx = find_index_branchless(k);
 
 #if DEBUG
   uint32_t i = 0;
@@ -198,7 +220,7 @@ const BTreeNode<T, W> *BTreeNode<T, W>::find(T k) const {
     i++;
   
   if (keys[i] == k) {
-    if (idx != -1) {
+    if (idx != i) {
       printf("\nbad binary search! i = %u, bs_i = %u", i, idx);
     }
     return this;
@@ -206,13 +228,15 @@ const BTreeNode<T, W> *BTreeNode<T, W>::find(T k) const {
   if (idx != i) {
     printf("\nbad binary search! i = %u, bs_i = %u", i, idx);
   }  
+
   if (is_leaf)
     return nullptr;
 
   return children[i]->find(k);
 #endif
 
-  if (idx == -1) {
+  // check for equality if using linear or branchless bs
+  if (keys[idx] == k) {
     return this;
   }
 
@@ -296,7 +320,7 @@ bool BTreeNode<T, W>::insertNonFull(T k, W w) {
 bool BTreeNode<T, W>::insertNonFull(T k) {
 #endif
 
-  uint32_t idx = find_index(k);
+  uint32_t idx = find_index_branchless(k);
 
 #if DEBUG
   uint32_t i;
@@ -320,7 +344,8 @@ bool BTreeNode<T, W>::insertNonFull(T k) {
   }
 #endif
 
-  if (idx == -1) {
+  // check for equality for linear or branchless bs
+  if (keys[idx] == k) {
     return false;
   }
 
