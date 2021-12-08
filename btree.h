@@ -33,6 +33,17 @@ public:
   BTreeNode(bool is_leaf);
   const uint32_t find_index(T k) const;
   const uint32_t find_index_branchless(T k) const;
+  const uint32_t find_index_branchless_fixedsize1(T k, intptr_t pos) const;
+  const uint32_t find_index_branchless_fixedsize2(T k, intptr_t pos) const;
+  const uint32_t find_index_branchless_fixedsize4(T k, intptr_t pos) const;
+  const uint32_t find_index_branchless_fixedsize8(T k, intptr_t pos) const;
+  const uint32_t find_index_branchless_fixedsize16(T k, intptr_t pos) const;
+  const uint32_t find_index_branchless_fixedsize32(T k, intptr_t pos) const;
+  const uint32_t find_index_branchless_fixedsize64(T k, intptr_t pos) const;
+  const uint32_t find_index_branchless_fixedsize128(T k, intptr_t pos) const;
+  const uint32_t find_index_branchless_fixedsize256(T k, intptr_t pos) const;
+  const uint32_t find_index_branchless_fixedsize512(T k, intptr_t pos) const;
+  const uint32_t find_index_branchless_fixedsize(T k) const;
   const BTreeNode<T, W> *find(T k) const;
 #if WEIGHTED
   W get_val(T k) const;
@@ -207,12 +218,161 @@ const uint32_t BTreeNode<T, W>::find_index_branchless(T k) const {
   return pos + 1;
 }
 
+// FIXED SIZE FUNCTIONS
+template <class T, class W>
+const uint32_t BTreeNode<T, W>::find_index_branchless_fixedsize512(T k, intptr_t pos) const {
+  pos += (keys[pos + 512] < k ? 512 : 0);
+  pos += (keys[pos + 256] < k ? 256 : 0);
+  pos += (keys[pos + 128] < k ? 128 : 0);
+  pos += (keys[pos + 64] < k ? 64 : 0);
+  pos += (keys[pos + 32] < k ? 32 : 0);
+  pos += (keys[pos + 16] < k ? 16 : 0);
+  pos += (keys[pos + 8] < k ? 8 : 0);
+  pos += (keys[pos + 4] < k ? 4 : 0);
+  pos += (keys[pos + 2] < k ? 2 : 0);
+  pos += (keys[pos + 1] < k ? 1 : 0);
+  return pos + 1;
+}
+
+template <class T, class W>
+const uint32_t BTreeNode<T, W>::find_index_branchless_fixedsize256(T k, intptr_t pos) const {
+  pos += (keys[pos + 256] < k ? 256 : 0);
+  pos += (keys[pos + 128] < k ? 128 : 0);
+  pos += (keys[pos + 64] < k ? 64 : 0);
+  pos += (keys[pos + 32] < k ? 32 : 0);
+  pos += (keys[pos + 16] < k ? 16 : 0);
+  pos += (keys[pos + 8] < k ? 8 : 0);
+  pos += (keys[pos + 4] < k ? 4 : 0);
+  pos += (keys[pos + 2] < k ? 2 : 0);
+  pos += (keys[pos + 1] < k ? 1 : 0);
+  return pos + 1;
+}
+
+template <class T, class W>
+const uint32_t BTreeNode<T, W>::find_index_branchless_fixedsize128(T k, intptr_t pos) const {
+  pos += (keys[pos + 128] < k ? 128 : 0);
+  pos += (keys[pos + 64] < k ? 64 : 0);
+  pos += (keys[pos + 32] < k ? 32 : 0);
+  pos += (keys[pos + 16] < k ? 16 : 0);
+  pos += (keys[pos + 8] < k ? 8 : 0);
+  pos += (keys[pos + 4] < k ? 4 : 0);
+  pos += (keys[pos + 2] < k ? 2 : 0);
+  pos += (keys[pos + 1] < k ? 1 : 0);
+  return pos + 1;
+}
+
+template <class T, class W>
+const uint32_t BTreeNode<T, W>::find_index_branchless_fixedsize64(T k, intptr_t pos) const {
+  pos += (keys[pos + 64] < k ? 64 : 0);
+  pos += (keys[pos + 32] < k ? 32 : 0);
+  pos += (keys[pos + 16] < k ? 16 : 0);
+  pos += (keys[pos + 8] < k ? 8 : 0);
+  pos += (keys[pos + 4] < k ? 4 : 0);
+  pos += (keys[pos + 2] < k ? 2 : 0);
+  pos += (keys[pos + 1] < k ? 1 : 0);
+  return pos + 1;
+}
+
+template <class T, class W>
+const uint32_t BTreeNode<T, W>::find_index_branchless_fixedsize32(T k, intptr_t pos) const {
+  pos += (keys[pos + 32] < k ? 32 : 0);
+  pos += (keys[pos + 16] < k ? 16 : 0);
+  pos += (keys[pos + 8] < k ? 8 : 0);
+  pos += (keys[pos + 4] < k ? 4 : 0);
+  pos += (keys[pos + 2] < k ? 2 : 0);
+  pos += (keys[pos + 1] < k ? 1 : 0);
+  return pos + 1;
+}
+
+template <class T, class W>
+const uint32_t BTreeNode<T, W>::find_index_branchless_fixedsize16(T k, intptr_t pos) const {
+  pos += (keys[pos + 16] < k ? 16 : 0);
+  pos += (keys[pos + 8] < k ? 8 : 0);
+  pos += (keys[pos + 4] < k ? 4 : 0);
+  pos += (keys[pos + 2] < k ? 2 : 0);
+  pos += (keys[pos + 1] < k ? 1 : 0);
+  return pos + 1;
+}
+
+template <class T, class W>
+const uint32_t BTreeNode<T, W>::find_index_branchless_fixedsize8(T k, intptr_t pos) const {
+  pos += (keys[pos + 8] < k ? 8 : 0);
+  pos += (keys[pos + 4] < k ? 4 : 0);
+  pos += (keys[pos + 2] < k ? 2 : 0);
+  pos += (keys[pos + 1] < k ? 1 : 0);
+  return pos + 1;
+}
+
+template <class T, class W>
+const uint32_t BTreeNode<T, W>::find_index_branchless_fixedsize4(T k, intptr_t pos) const {
+  pos += (keys[pos + 4] < k ? 4 : 0);
+  pos += (keys[pos + 2] < k ? 2 : 0);
+  pos += (keys[pos + 1] < k ? 1 : 0);
+  return pos + 1;
+}
+
+template <class T, class W>
+const uint32_t BTreeNode<T, W>::find_index_branchless_fixedsize2(T k, intptr_t pos) const {
+  pos += (keys[pos + 2] < k ? 2 : 0);
+  pos += (keys[pos + 1] < k ? 1 : 0);
+  return pos + 1;
+}
+
+
+template <class T, class W>
+const uint32_t BTreeNode<T, W>::find_index_branchless_fixedsize1(T k, intptr_t pos) const {
+  
+  pos += (keys[pos + 1] < k ? 1 : 0);
+  return pos + 1;
+}
+
+template <class T, class W>
+const uint32_t BTreeNode<T, W>::find_index_branchless_fixedsize(T k) const {
+  
+  intptr_t pos = -1;
+  intptr_t logstep = 32 - __builtin_clz(num_keys) - 1; // bsr
+
+  // special first iteration to make power of 2 intervals
+  intptr_t step = num_keys + 1 - uint32_t(intptr_t(1) << logstep);
+  pos = (keys[pos + step] < k ? pos + step : pos);
+  // step = uint32_t(intptr_t(1) << (logstep - 1));
+  step = logstep - 1;
+
+  // say its 64 - 128 keys
+  if (step < 0) {
+    return pos + 1;
+  } else if (step == 0) {
+    return find_index_branchless_fixedsize1(k, pos);
+  } else if (step == 1) {
+    return find_index_branchless_fixedsize2(k, pos);
+  } else if (step == 2) {
+    return find_index_branchless_fixedsize4(k, pos);
+  } else if (step == 3) {
+    return find_index_branchless_fixedsize8(k, pos);
+  } else if (step == 4) {
+    return find_index_branchless_fixedsize16(k, pos);
+  } else if (step == 5) {
+    return find_index_branchless_fixedsize32(k, pos);
+  } else if (step == 6) {
+    return find_index_branchless_fixedsize64(k, pos);
+  } else if (step == 7) {
+    return find_index_branchless_fixedsize128(k, pos);
+  } else if (step == 8) {
+    return find_index_branchless_fixedsize256(k, pos);
+  } else if (step == 9) {
+    return find_index_branchless_fixedsize512(k, pos);
+  } else {
+    printf("\nfixed size bad, step = %ld \n", step);
+    exit(0);
+  }
+}
+
 template <class T, class W>
 const BTreeNode<T, W> *BTreeNode<T, W>::find(T k) const {
 
   // uint32_t idx = find_index(k);
   // uint32_t idx_branchless = find_index_branchless(k);
-  uint32_t idx = find_index_branchless(k);
+  uint32_t idx = find_index_branchless_fixedsize(k);
 
 #if DEBUG
   uint32_t i = 0;
@@ -320,7 +480,7 @@ bool BTreeNode<T, W>::insertNonFull(T k, W w) {
 bool BTreeNode<T, W>::insertNonFull(T k) {
 #endif
 
-  uint32_t idx = find_index_branchless(k);
+  uint32_t idx = find_index_branchless_fixedsize(k);
 
 #if DEBUG
   uint32_t i;
