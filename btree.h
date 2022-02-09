@@ -18,7 +18,7 @@
 #include <stack>
 #include <utility>
 #include <vector>
-
+#include <limits>
 // #include "parallel.h"
 #define DEBUG 0
 
@@ -35,6 +35,8 @@ public:
   // override via leaf and internal 
   virtual BTreeNode<T, W>* get_children(int i) const = 0;
   virtual void set_children(int i, BTreeNode<T, W>* a) = 0;
+  virtual void move_children(int i, BTreeNode<T, W>* c) = 0;
+  virtual void copy_children(int i) = 0;
 
   const uint32_t find_index(T k) const;
   const uint32_t find_index_branchless(T k) const;
@@ -101,12 +103,20 @@ protected:
 template <class T, class W> class BTreeNodeInternal : public BTreeNode<T, W> {
 
   public:
-    BTreeNodeInternal();
+    BTreeNodeInternal(); // { children = new BTreeNode<T,W>[MAX_CHILDREN]; };
   
     BTreeNode<T, W>* get_children(int i) const { return children[i]; }
     void set_children(int i, BTreeNode<T, W>* a) { children[i] = a; }
-    
-  private:
+
+
+    // starting from position i, move the children
+    void move_children(int i, BTreeNode<T, W>* c) {
+      memmove(&children[i], &(((BTreeNodeInternal*)c)->children)[MIN_KEYS], (MAX_KEYS) * sizeof(children[0]));
+    }
+    void copy_children(int i) {
+      memcpy(&children[i + 2], &children[i + 1],
+		      (MAX_CHILDREN - i - 2) * sizeof(children[0])); };
+
     BTreeNode<T, W> *children[MAX_CHILDREN];
 };
 
@@ -115,6 +125,9 @@ template <class T, class W> class BTreeNodeLeaf : public BTreeNode<T, W> {
     BTreeNodeLeaf();
     BTreeNode<T, W>* get_children(int i) const { return nullptr; }
     void set_children(int i, BTreeNode<T, W>* a) {}
+    void move_children(int i, BTreeNode<T, W>* c) {}
+    void copy_children(int i) {}
+
 };
 
 template <class T, class W> class BTree {
@@ -543,12 +556,18 @@ bool BTreeNode<T, W>::insertNonFull(T k) {
   }
 
   if (is_leaf) { // If this is a leaf node
+#if DEBUG
+    printf("\tinsert-non-full in leaf\n");
+#endif
     memmove(&keys[idx + 1], &keys[idx], (MAX_KEYS - idx - 1) * sizeof(keys[0]));
 #if WEIGHTED
     memmove(&weights[idx + 1], &weights[idx],
             (MAX_KEYS - idx - 1) * sizeof(weights[0]));
 #endif
     // Insert the new key at found location
+#if DEBUG
+    printf("\tput key %lu at idx %u\n", k, idx);
+#endif
     keys[idx] = k;
 #if WEIGHTED
     weights[idx] = w;
@@ -556,6 +575,9 @@ bool BTreeNode<T, W>::insertNonFull(T k) {
     num_keys = num_keys + 1;
     return true;
   } else {                                     // If this node is not leaf
+#if DEBUG
+    printf("\tinsert-non-full in internal node\n");
+#endif
     if (get_children(idx)->num_keys == MAX_KEYS) { // See if the found child is full
       // If the child is full, then split it
       splitChild(idx, get_children(idx));
@@ -583,7 +605,9 @@ void BTreeNode<T, W>::splitChild(uint32_t i, BTreeNode<T, W> *c) {
 
   // only memset children if c is an internal node
   if (c->is_leaf) {
-
+  #if DEBUG
+    printf("\tsplitting from leaf\n");
+  #endif
     BTreeNodeLeaf<T, W> *z = new BTreeNodeLeaf<T, W>();
     z->num_keys = MIN_KEYS - 1;
 
@@ -594,11 +618,22 @@ void BTreeNode<T, W>::splitChild(uint32_t i, BTreeNode<T, W> *c) {
             (MIN_KEYS - 1) * sizeof(weights[0]));
   #endif
 
-  } else {
+  #if DEBUG
+    printf("\tz keys: ");
+    for(int i = 0; i < z->num_keys; i++) {
+      printf("%lu\t", z->keys[i]);
+    }
+    printf("\n");
+    printf("set child at idx %u as z\n", i + 1);
+  #endif 
 
+    this->copy_children(i);
+    set_children(i + 1, z);
+  } else { // c is an internal node
     BTreeNodeInternal<T, W> *z = new BTreeNodeInternal<T, W>();
     z->num_keys = MIN_KEYS - 1;
 
+    
     // Copy the last (MIN_KEYS-1) keys of c to z
     memmove(&z->keys[0], &c->keys[MIN_KEYS], (MIN_KEYS - 1) * sizeof(keys[0]));
   #if WEIGHTED
@@ -606,41 +641,20 @@ void BTreeNode<T, W>::splitChild(uint32_t i, BTreeNode<T, W> *c) {
             (MIN_KEYS - 1) * sizeof(weights[0]));
   #endif
 
-    // ASK: There's probably (definitely) something up with this, not sure how memmove/cpy works with runtime polymorphic pointers
-    memmove(z->get_children(0), c->get_children(MIN_KEYS),
-            (MAX_KEYS) * sizeof(get_children(0)));
+    z->move_children(0, c);
+    // memmove(z->get_children(0), c->get_children(MIN_KEYS),
+    //         (MAX_KEYS) * sizeof(get_children(0)));
 
-    memcpy(get_children(i + 2), get_children(i + 1),
-         (MAX_CHILDREN - i - 2) * sizeof(get_children(0)));
+    this->copy_children(i);
+    // memcpy(get_children(i + 2), get_children(i + 1),
+    //     (MAX_CHILDREN - i - 2) * sizeof(get_children(0)));
 
   // Link the new child to this node
     set_children(i + 1, z);
   }
-  // z->num_keys = MIN_KEYS - 1;
-
-  // Copy the last (MIN_KEYS-1) keys of c to z
-//   memmove(&z->keys[0], &c->keys[MIN_KEYS], (MIN_KEYS - 1) * sizeof(keys[0]));
-// #if WEIGHTED
-//   memmove(&z->weights[0], &c->weights[MIN_KEYS],
-//           (MIN_KEYS - 1) * sizeof(weights[0]));
-// #endif
-
-  // ASK: not sure if i can use my virtual functions here ...
-  // Copy the last t children of y to z
-  // if (!c->is_leaf)
-  //   memmove(&z->children[0], &c->children[MIN_KEYS],
-  //           (MAX_KEYS) * sizeof(children[0]));
 
   // Reduce the number of keys in y
   c->num_keys = MIN_KEYS - 1;
-
-  // Since this node is going to have a new child,
-  // create space of new child
-  // memcpy(&children[i + 2], &children[i + 1],
-  //        (MAX_CHILDREN - i - 2) * sizeof(children[0]));
-
-  // Link the new child to this node
-  // children[i + 1] = z;
 
   // A key of y will move to this node. Find the location of
   // new key and move all greater keys one space ahead
@@ -724,6 +738,9 @@ bool BTree<T, W>::insert(T k, W w) {
 #else
 bool BTree<T, W>::insert(T k) {
 #endif
+ #if DEBUG
+  printf("inserting key %lu\n", k);
+ #endif
   // If tree is empty
   if (root == nullptr) {
     // Allocate memory for root
@@ -737,6 +754,9 @@ bool BTree<T, W>::insert(T k) {
   } else { // If tree is not empty
     // If root is full, then tree grows in height
     if (root->num_keys == MAX_KEYS) {
+#if DEBUG
+      printf("\tsplit root\n");
+#endif
       // Allocate memory for new root
       BTreeNode<T, W> *s = new BTreeNodeInternal<T, W>();
 
@@ -745,6 +765,7 @@ bool BTree<T, W>::insert(T k) {
 
       // Split the old root and move 1 key to the new root
       s->splitChild(0, root);
+      //printf("\tafter split, root has %lu keys, prev root has %lu keys, right child has %lu keys\n", s->num_keys, root->num_keys, s->get_children(1)->num_keys);
 
       // New root has two children now.  Decide which of the
       // two children is going to have new key
@@ -752,6 +773,7 @@ bool BTree<T, W>::insert(T k) {
       if (s->keys[0] < k)
         i++;
 
+      //printf("\tsplit pivot is %lu, i = %d\n", s->keys[0], i);
       // Change root
       root = s;
 #if WEIGHTED
@@ -763,6 +785,7 @@ bool BTree<T, W>::insert(T k) {
 #if WEIGHTED
       return root->insertNonFull(k, w);
 #else
+      //printf("\tinsert into root with %lu keys\n", root->num_keys);
       return root->insertNonFull(k);
 #endif
   }

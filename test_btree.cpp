@@ -74,6 +74,8 @@ void test_btree_unordered_insert(uint64_t max_size, std::seed_seq &seed) {
   }
   std::vector<T> data =
       create_random_data<T>(max_size, std::numeric_limits<T>::max(), seed);
+      //create_random_data<T>(max_size, 100, seed);
+
   // std::set<T> inserted_data;
 
   uint64_t start, end;
@@ -121,10 +123,10 @@ void test_btree_unordered_insert(uint64_t max_size, std::seed_seq &seed) {
 int main() {
   // test_btree_ordered_insert<uint32_t>(129);
   std::seed_seq seed{0};
-  // printf("------- ORDERED INSERT --------");
+  // printf("------- ORDERED INSERT --------\n");
   // test_btree_ordered_insert<uint64_t>(100000000);
-  printf("------- UNORDERED INSERT --------");
-  // test_btree_unordered_insert<uint64_t>(100000000, seed);
+  printf("------- UNORDERED INSERT --------\n");
+  test_btree_unordered_insert<uint64_t>(100000000, seed);
 
-  test_btree_unordered_insert<uint64_t>(130, seed);
+  //test_btree_unordered_insert<uint64_t>(100000, seed);
 }
