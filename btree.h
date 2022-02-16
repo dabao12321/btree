@@ -38,7 +38,8 @@ public:
   virtual void move_children(int i, BTreeNode<T, W>* c) = 0;
   virtual void copy_children(int i) = 0;
 
-  const uint32_t find_index(T k) const;
+  const uint32_t find_index_linear(T k) const;
+  const uint32_t find_index_binary(T k) const;
   const uint32_t find_index_branchless(T k) const;
   const uint32_t find_index_branchless_fixedsize1(T k, intptr_t pos) const;
   const uint32_t find_index_branchless_fixedsize2(T k, intptr_t pos) const;
@@ -230,13 +231,28 @@ template <class T, class W> W BTreeNode<T, W>::get_val(T k) const {
 #endif
 
 template <class T, class W>
-const uint32_t BTreeNode<T, W>::find_index(T k) const {
+const uint32_t BTreeNode<T, W>::find_index_linear(T k) const {
+
+  uint32_t i;
+  for (i = 0; i < num_keys; i++) {
+    if (keys[i] < k)
+      continue;
+    else if (k == keys[i]) {
+      break;
+    } else
+      break;
+  }
+  return i;
+}
+
+template <class T, class W>
+const uint32_t BTreeNode<T, W>::find_index_binary(T k) const {
   uint32_t left = 0;
   uint32_t right = num_keys - 1;
   while (left <= right) {
     int mid = left + (right - left) / 2;
     if (keys[mid] == k) {
-      left = -1;
+      left = mid;
       break;
     } else if (keys[mid] < k) {
       left = mid + 1;
@@ -420,9 +436,10 @@ const uint32_t BTreeNode<T, W>::find_index_branchless_fixedsize(T k) const {
 template <class T, class W>
 const BTreeNode<T, W> *BTreeNode<T, W>::find(T k) const {
 
-  // uint32_t idx = find_index(k);
+  uint32_t idx = find_index_linear(k);
+  // uint32_t idx = find_index_binary(k);
   // uint32_t idx_branchless = find_index_branchless(k);
-  uint32_t idx = find_index_branchless_fixedsize(k);
+  // uint32_t idx = find_index_branchless_fixedsize(k);
 
 #if DEBUG
   uint32_t i = 0;
@@ -530,7 +547,10 @@ bool BTreeNode<T, W>::insertNonFull(T k, W w) {
 bool BTreeNode<T, W>::insertNonFull(T k) {
 #endif
 
-  uint32_t idx = find_index_branchless_fixedsize(k);
+  uint32_t idx = find_index_linear(k);
+  // uint32_t idx = find_index_binary(k);
+  // uint32_t idx = find_index_branchless(k);
+  // uint32_t idx = find_index_branchless_fixedsize(k);
 
 #if DEBUG
   uint32_t i;
