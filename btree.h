@@ -24,7 +24,7 @@
 
 #define WEIGHTED 0
 
-#define MIN_KEYS 64
+#define MIN_KEYS 63
 #define MAX_KEYS (2 * MIN_KEYS - 1)
 #define MAX_CHILDREN (2 * MIN_KEYS)
 
@@ -118,6 +118,8 @@ template <class T, class W> class BTreeNodeInternal : public BTreeNode<T, W> {
 		      (MAX_CHILDREN - i - 2) * sizeof(children[0])); };
 
     BTreeNode<T, W> *children[MAX_CHILDREN];
+  private:
+    uint64_t padding[3]; 
 };
 
 template <class T, class W> class BTreeNodeLeaf : public BTreeNode<T, W> {
@@ -127,6 +129,8 @@ template <class T, class W> class BTreeNodeLeaf : public BTreeNode<T, W> {
     void set_children(int i, BTreeNode<T, W>* a) {}
     void move_children(int i, BTreeNode<T, W>* c) {}
     void copy_children(int i) {}
+  private:
+    uint64_t padding; 
 
 };
 

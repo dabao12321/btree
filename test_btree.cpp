@@ -32,6 +32,7 @@ template <class T> void test_btree_ordered_insert(uint64_t max_size) {
   }
   uint64_t start, end;
   BTree<T, T> s;
+
   start = get_usecs();
   for (uint32_t i = 1; i < max_size; i++) {
     s.insert(i);
@@ -121,7 +122,10 @@ void test_btree_unordered_insert(uint64_t max_size, std::seed_seq &seed) {
 }
 
 int main() {
+  printf("B tree node internal size %zu\n", sizeof(BTreeNodeInternal<uint64_t,uint64_t>));
+  printf("B tree node leaf size %zu\n", sizeof(BTreeNodeLeaf<uint64_t,uint64_t>));
   // test_btree_ordered_insert<uint32_t>(129);
+  
   std::seed_seq seed{0};
   // printf("------- ORDERED INSERT --------\n");
   // test_btree_ordered_insert<uint64_t>(100000000);
@@ -130,3 +134,4 @@ int main() {
 
   //test_btree_unordered_insert<uint64_t>(100000, seed);
 }
+
