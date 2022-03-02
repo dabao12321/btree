@@ -24,7 +24,7 @@
 
 #define WEIGHTED 0
 
-#define MIN_KEYS 63
+#define MIN_KEYS 127
 #define MAX_KEYS (2 * MIN_KEYS - 1)
 #define MAX_CHILDREN (2 * MIN_KEYS)
 
@@ -438,7 +438,7 @@ const BTreeNode<T, W> *BTreeNode<T, W>::find(T k) const {
 
   uint32_t idx = find_index_linear(k);
   // uint32_t idx = find_index_binary(k);
-  // uint32_t idx_branchless = find_index_branchless(k);
+  // uint32_t idx = find_index_branchless(k);
   // uint32_t idx = find_index_branchless_fixedsize(k);
 
 #if DEBUG

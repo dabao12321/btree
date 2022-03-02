@@ -130,8 +130,8 @@ int main() {
   // printf("------- ORDERED INSERT --------\n");
   // test_btree_ordered_insert<uint64_t>(100000000);
   printf("------- UNORDERED INSERT --------\n");
-  // test_btree_unordered_insert<uint64_t>(100000000, seed);
+  test_btree_unordered_insert<uint64_t>(100000000, seed);
 
-  test_btree_unordered_insert<uint64_t>(100000, seed);
+  // test_btree_unordered_insert<uint64_t>(1000000, seed);
 }
 
