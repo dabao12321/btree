@@ -6,6 +6,8 @@
 #include <functional>
 #include <set>
 #include <sys/time.h>
+#include <cilk/cilk.h>
+// #include <parallel.h>
 
 static long get_usecs() {
     struct timeval st;
@@ -130,7 +132,10 @@ int main() {
   // printf("------- ORDERED INSERT --------\n");
   // test_btree_ordered_insert<uint64_t>(100000000);
   printf("------- UNORDERED INSERT --------\n");
-  test_btree_unordered_insert<uint64_t>(100000000, seed);
+
+  cilk_for (int i = 0; i < 10; i++) {
+    test_btree_unordered_insert<uint64_t>(100000000, seed);
+  }
 
   // test_btree_unordered_insert<uint64_t>(1000000, seed);
 }
