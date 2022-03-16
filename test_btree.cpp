@@ -71,7 +71,7 @@ template <class T> void test_btree_ordered_insert(uint64_t max_size) {
 }
 
 template <class T>
-void test_btree_unordered_insert(uint64_t max_size, std::seed_seq &seed) {
+uint64_t* test_btree_unordered_insert(uint64_t max_size, std::seed_seq &seed) {
   if (max_size > std::numeric_limits<T>::max()) {
     max_size = std::numeric_limits<T>::max();
   }
@@ -82,6 +82,10 @@ void test_btree_unordered_insert(uint64_t max_size, std::seed_seq &seed) {
   // std::set<T> inserted_data;
 
   uint64_t start, end;
+
+  // save insertion, find, iter sum, naive sum times
+  static uint64_t times[4];
+
   BTree<T, T> s;
   start = get_usecs();
   for (uint32_t i = 1; i < max_size; i++) {
@@ -90,8 +94,9 @@ void test_btree_unordered_insert(uint64_t max_size, std::seed_seq &seed) {
   }
   end = get_usecs();
 
-
+  times[0] = end - start;
   printf("\ninsertion,\t %lu,", end - start);
+
   // printf("\ncorrect sum: ,\t %lu,", std::accumulate(inserted_data.begin(), inserted_data.end(), 0L));
 
   start = get_usecs();
@@ -103,6 +108,8 @@ void test_btree_unordered_insert(uint64_t max_size, std::seed_seq &seed) {
     }
   }
   end = get_usecs();
+
+  times[1] = end - start;
   printf("\nfind all,\t %lu,", end - start);
 
   start = get_usecs();
@@ -115,12 +122,16 @@ void test_btree_unordered_insert(uint64_t max_size, std::seed_seq &seed) {
   }
   
   end = get_usecs();
+  times[2] = end - start;
   printf("\nsum_time with iterator, \t%lu, \tsum_total, \t%lu, \t", end - start,
          sum);
+
   start = get_usecs();
   sum = s.sum();
   end = get_usecs();
+  times[3] = end - start;
   printf("\nsum_time, %lu, sum_total, %lu\n", end - start, sum);
+  return times;
 }
 
 int main() {
@@ -133,10 +144,39 @@ int main() {
   // test_btree_ordered_insert<uint64_t>(100000000);
   printf("------- UNORDERED INSERT --------\n");
 
-  cilk_for (int i = 0; i < 10; i++) {
-    test_btree_unordered_insert<uint64_t>(100000000, seed);
+  uint64_t num_parallel = 10;
+  uint64_t insert_times[num_parallel];
+  uint64_t find_times[num_parallel];
+  uint64_t sumiter_times[num_parallel];
+  uint64_t sum_times[num_parallel];
+
+  uint64_t insert_total = 0;
+  uint64_t find_total = 0;
+  uint64_t sumiter_total = 0;
+  uint64_t sum_total = 0;
+
+  cilk_for (int i = 0; i < num_parallel; i++) {
+    uint64_t* times = test_btree_unordered_insert<uint64_t>(100000000, seed);
+    insert_times[i] = times[0];
+    find_times[i] = times[1];
+    sumiter_times[i] = times[2];
+    sum_times[i] = times[3];
   }
 
+  for (int i = 0; i < num_parallel; i++) {
+    insert_total += insert_times[i];
+    find_total += find_times[i];
+    sumiter_total += sumiter_times[i];
+    sum_total += sum_times[i];
+  }
+
+  printf("\n------- AVERAGE TIMES --------\n");
+
+  printf("\ninsertion %lu \nfind all %lu \nsum iter %lu \nsum native %lu \n",
+        (insert_total/num_parallel),
+        (find_total/num_parallel),
+        (sumiter_total/num_parallel),
+        (sum_total/num_parallel));
   // test_btree_unordered_insert<uint64_t>(1000000, seed);
 }
 
