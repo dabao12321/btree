@@ -24,7 +24,7 @@
 
 #define WEIGHTED 0
 
-#define MIN_KEYS 63
+#define MIN_KEYS 509
 #define MAX_KEYS (2 * MIN_KEYS - 1)
 #define MAX_CHILDREN (2 * MIN_KEYS)
 

@@ -7,6 +7,7 @@
 #include <set>
 #include <sys/time.h>
 #include <cilk/cilk.h>
+#include <cilk/cilk_api.h>
 // #include <parallel.h>
 
 static long get_usecs() {
@@ -71,7 +72,7 @@ template <class T> void test_btree_ordered_insert(uint64_t max_size) {
 }
 
 template <class T>
-uint64_t* test_btree_unordered_insert(uint64_t max_size, std::seed_seq &seed) {
+void test_btree_unordered_insert(uint64_t max_size, std::seed_seq &seed, uint64_t* times) {
   if (max_size > std::numeric_limits<T>::max()) {
     max_size = std::numeric_limits<T>::max();
   }
@@ -84,7 +85,6 @@ uint64_t* test_btree_unordered_insert(uint64_t max_size, std::seed_seq &seed) {
   uint64_t start, end;
 
   // save insertion, find, iter sum, naive sum times
-  static uint64_t times[4];
 
   BTree<T, T> s;
   start = get_usecs();
@@ -131,7 +131,6 @@ uint64_t* test_btree_unordered_insert(uint64_t max_size, std::seed_seq &seed) {
   end = get_usecs();
   times[3] = end - start;
   printf("\nsum_time, %lu, sum_total, %lu\n", end - start, sum);
-  return times;
 }
 
 int main() {
@@ -144,7 +143,10 @@ int main() {
   // test_btree_ordered_insert<uint64_t>(100000000);
   printf("------- UNORDERED INSERT --------\n");
 
-  uint64_t num_parallel = 10;
+
+  // IF YOU SET THIS TO BE ANYTHING 2 - 6, IT GIVES THE CLANG WEIRD BUG
+  uint64_t num_parallel = 8;
+  
   uint64_t insert_times[num_parallel];
   uint64_t find_times[num_parallel];
   uint64_t sumiter_times[num_parallel];
@@ -155,8 +157,12 @@ int main() {
   uint64_t sumiter_total = 0;
   uint64_t sum_total = 0;
 
+  // set to 16 workers
+  __cilkrts_set_param("nworkers","16");
+
   cilk_for (int i = 0; i < num_parallel; i++) {
-    uint64_t* times = test_btree_unordered_insert<uint64_t>(100000000, seed);
+    uint64_t times[4];
+    test_btree_unordered_insert<uint64_t>(100000000, seed, times);
     insert_times[i] = times[0];
     find_times[i] = times[1];
     sumiter_times[i] = times[2];
@@ -171,6 +177,7 @@ int main() {
   }
 
   printf("\n------- AVERAGE TIMES --------\n");
+
 
   printf("\ninsertion %lu \nfind all %lu \nsum iter %lu \nsum native %lu \n",
         (insert_total/num_parallel),
