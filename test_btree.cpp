@@ -12,8 +12,6 @@
 
 #define PARALLEL 0
 
-#define STATS 0
-
 static long get_usecs() {
     struct timeval st;
     gettimeofday(&st,NULL);
@@ -106,16 +104,18 @@ void test_btree_unordered_insert(uint64_t max_size, std::seed_seq &seed, uint64_
   int num_nodes = s.get_num_nodes();
   int num_internal_nodes = s.get_num_internal_nodes();
   int num_internal_elems = s.get_num_internal_elements();
-  int overall_density = max_size / num_nodes;
-  int internal_density = num_internal_elems / num_internal_nodes;
-  int leaf_density = (max_size - num_internal_elems) / (num_nodes - num_internal_nodes);
+  float internal_density = (num_internal_elems / num_internal_nodes)/float(MAX_KEYS);
+  float leaf_density = ((max_size - num_internal_elems) / (num_nodes - num_internal_nodes)) / float(MAX_KEYS);
 
-  printf("\ndensity stats: \n\tnum_levels: %u\n\tnum nodes: %u\n\toverall density: %u\n\tinternal node density: %u\n\tleaf node density: %u",
-          levels, num_nodes, overall_density, internal_density, leaf_density);
+  printf("\ndensity stats: \n\tnum_levels: %u\n\tnum nodes: %u\n\tinternal node density: %f\n\tleaf node density: %f",
+          levels, num_nodes, internal_density, leaf_density);
 
-  printf("\n\tsize of tree: %lu", s.get_size());
+  printf("\n\tspace density: %f", (float)max_size * sizeof(uint64_t) / s.get_size());
+
+  printf("\navg number of linear comparisons made per insert: %lu", s.get_total_comparisons()/max_size);
 
   printf("\n");
+  return;
 #endif
 
   // printf("\ncorrect sum: ,\t %lu,", std::accumulate(inserted_data.begin(), inserted_data.end(), 0L));
@@ -211,7 +211,7 @@ int main() {
         (sum_total/num_parallel));
 #else 
   // SINGLE RUN
-  test_btree_unordered_insert<uint64_t>(1000000, seed, times);
+  test_btree_unordered_insert<uint64_t>(100000000, seed, times);
 	printf("\ninsert time %lu, find time %lu, sumiter time %lu, sum time %lu\n", times[0], times[1], times[2], times[3]);
 #endif
 	return 0;

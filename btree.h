@@ -24,14 +24,18 @@
 #define DEBUG 0
 
 #define WEIGHTED 0
+#define STATS 1
 
-#define MIN_KEYS 64
+#define MIN_KEYS 4095
 #define MAX_KEYS (2 * MIN_KEYS - 1)
 #define MAX_CHILDREN (2 * MIN_KEYS)
 
 template <class T, class W> class BTreeNode {
 public:
   BTreeNode(bool is_leaf);
+#if STATS
+  uint64_t num_comparisons = 0;
+#endif
 
   // override via leaf and internal 
   virtual BTreeNode<T, W>* get_children(int i) const = 0;
@@ -72,6 +76,9 @@ public:
   uint32_t get_num_nodes() const;
   uint32_t get_num_internal_nodes() const;
   uint32_t get_num_internal_elements() const;
+#if STATS
+  uint64_t get_total_comparisons() const;
+#endif
 
   class NodeIterator {
   public:
@@ -125,7 +132,11 @@ template <class T, class W> class BTreeNodeInternal : public BTreeNode<T, W> {
 
     BTreeNode<T, W> *children[MAX_CHILDREN];
   private:
-    uint64_t padding[3]; 
+#if STATS
+    uint64_t padding[2];
+#else
+    uint64_t padding[3];
+#endif
 };
 
 template <class T, class W> class BTreeNodeLeaf : public BTreeNode<T, W> {
@@ -136,8 +147,10 @@ template <class T, class W> class BTreeNodeLeaf : public BTreeNode<T, W> {
     void move_children(int i, BTreeNode<T, W>* c) {}
     void copy_children(int i) {}
   private:
-    uint64_t padding; 
-
+#if STATS
+#else
+    uint64_t padding;
+#endif
 };
 
 template <class T, class W> class BTree {
@@ -197,6 +210,12 @@ public:
   int get_num_internal_elements() const {
     return root->get_num_internal_elements();
   }
+
+#if STATS
+  uint64_t get_total_comparisons() const {
+    return root->get_total_comparisons();
+  }
+#endif
 
   const BTreeNode<T, W> *get_root(void) const { return root; }
 
@@ -621,6 +640,7 @@ template <class T, class W> uint32_t BTreeNode<T, W>::get_num_internal_nodes() c
   return count;
 }
 
+
 template <class T, class W> uint32_t BTreeNode<T, W>::get_num_internal_elements() const {
   if (is_leaf) {
     return 0;
@@ -637,6 +657,21 @@ template <class T, class W> uint32_t BTreeNode<T, W>::get_num_internal_elements(
   return count;
 }
 
+#if STATS
+template <class T, class W> uint64_t BTreeNode<T, W>::get_total_comparisons() const {
+  uint64_t count{num_comparisons};
+  uint32_t i;
+  for (i = 0; i < num_keys; i++) {
+    if (!is_leaf)
+      count += get_children(i)->num_comparisons;
+  }
+  // Print the subtree rooted with last child
+  if (!is_leaf)
+    count += get_children(i)->num_comparisons;
+  return count;
+}
+#endif
+
 template <class T, class W>
 #if WEIGHTED
 bool BTreeNode<T, W>::insertNonFull(T k, W w) {
@@ -645,6 +680,9 @@ bool BTreeNode<T, W>::insertNonFull(T k) {
 #endif
 
   uint32_t idx = find_index_linear(k);
+#if STATS
+  num_comparisons += idx;
+#endif
   // uint32_t idx = find_index_binary(k);
   // uint32_t idx = find_index_branchless(k);
   // uint32_t idx = find_index_branchless_fixedsize(k);
