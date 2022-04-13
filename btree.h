@@ -19,12 +19,13 @@
 #include <utility>
 #include <vector>
 #include <limits>
+#include <algorithm>
 // #include "parallel.h"
 #define DEBUG 0
 
 #define WEIGHTED 0
 
-#define MIN_KEYS 8192
+#define MIN_KEYS 64
 #define MAX_KEYS (2 * MIN_KEYS - 1)
 #define MAX_CHILDREN (2 * MIN_KEYS)
 
@@ -69,6 +70,8 @@ public:
   uint64_t sum() const;
   uint64_t psum() const;
   uint32_t get_num_nodes() const;
+  uint32_t get_num_internal_nodes() const;
+  uint32_t get_num_internal_elements() const;
 
   class NodeIterator {
   public:
@@ -169,8 +172,30 @@ public:
   }
 
   uint64_t get_size(void) const {
-    // ASK: will this work with two different derived nodes?
-    return get_num_nodes() * sizeof(BTreeNode<T, W>);
+    int num_nodes = get_num_nodes();
+    int num_internal_nodes = get_num_internal_nodes();
+    return num_internal_nodes * sizeof(BTreeNodeInternal<T, W>) + (num_nodes - num_internal_nodes) * sizeof(BTreeNodeLeaf<T, W>);
+  }
+
+  int num_levels(BTreeNode<T, W>* node) const {
+    int levels = 0;
+    if (node == nullptr)
+        return levels;
+    for (int i = 0; i <= node->num_keys; i++)
+        levels = std::max(levels, num_levels(node->get_children(i)));
+    return levels + 1;
+  }
+
+  int get_num_levels() const {
+    return num_levels(root);
+  }
+
+  int get_num_internal_nodes() const {
+    return root->get_num_internal_nodes();
+  }
+
+  int get_num_internal_elements() const {
+    return root->get_num_internal_elements();
   }
 
   const BTreeNode<T, W> *get_root(void) const { return root; }
@@ -577,6 +602,38 @@ template <class T, class W> uint32_t BTreeNode<T, W>::get_num_nodes() const {
   // Print the subtree rooted with last child
   if (!is_leaf)
     count += get_children(i)->get_num_nodes();
+  return count;
+}
+
+template <class T, class W> uint32_t BTreeNode<T, W>::get_num_internal_nodes() const {
+  if (is_leaf) {
+    return 0;
+  }
+  uint32_t count{1};
+  uint32_t i;
+  for (i = 0; i < num_keys; i++) {
+    if (!is_leaf)
+      count += get_children(i)->get_num_internal_nodes();
+  }
+  // Print the subtree rooted with last child
+  if (!is_leaf)
+    count += get_children(i)->get_num_internal_nodes();
+  return count;
+}
+
+template <class T, class W> uint32_t BTreeNode<T, W>::get_num_internal_elements() const {
+  if (is_leaf) {
+    return 0;
+  }
+  uint32_t count{num_keys};
+  uint32_t i;
+  for (i = 0; i < num_keys; i++) {
+    if (!is_leaf)
+      count += get_children(i)->get_num_internal_elements();
+  }
+  // Print the subtree rooted with last child
+  if (!is_leaf)
+    count += get_children(i)->get_num_internal_elements();
   return count;
 }
 
