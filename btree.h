@@ -24,7 +24,7 @@
 
 #define WEIGHTED 0
 
-#define MIN_KEYS 509
+#define MIN_KEYS 8192
 #define MAX_KEYS (2 * MIN_KEYS - 1)
 #define MAX_CHILDREN (2 * MIN_KEYS)
 
@@ -476,10 +476,10 @@ const uint32_t BTreeNode<T, W>::find_index_branchless_fixedsize(T k) const {
 template <class T, class W>
 const BTreeNode<T, W> *BTreeNode<T, W>::find(T k) const {
 
-  // uint32_t idx = find_index_linear(k);
+  uint32_t idx = find_index_linear(k);
   // uint32_t idx = find_index_binary(k);
   // uint32_t idx = find_index_branchless(k);
-  uint32_t idx = find_index_branchless_fixedsize(k);
+  // uint32_t idx = find_index_branchless_fixedsize(k);
 
 #if DEBUG
   uint32_t i = 0;
@@ -587,10 +587,10 @@ bool BTreeNode<T, W>::insertNonFull(T k, W w) {
 bool BTreeNode<T, W>::insertNonFull(T k) {
 #endif
 
-  // uint32_t idx = find_index_linear(k);
+  uint32_t idx = find_index_linear(k);
   // uint32_t idx = find_index_binary(k);
   // uint32_t idx = find_index_branchless(k);
-  uint32_t idx = find_index_branchless_fixedsize(k);
+  // uint32_t idx = find_index_branchless_fixedsize(k);
 
 #if DEBUG
   uint32_t i;

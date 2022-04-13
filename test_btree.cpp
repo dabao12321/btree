@@ -10,6 +10,8 @@
 #include <cilk/cilk_api.h>
 // #include <parallel.h>
 
+#define PARALLEL 0
+
 static long get_usecs() {
     struct timeval st;
     gettimeofday(&st,NULL);
@@ -142,10 +144,13 @@ int main() {
   // printf("------- ORDERED INSERT --------\n");
   // test_btree_ordered_insert<uint64_t>(100000000);
   printf("------- UNORDERED INSERT --------\n");
+  uint64_t times[4];
 
+#if PARALLEL
+  // MULTIPLE PARALLEL RUNS, STATS ARE AVERAGED
 
   // IF YOU SET THIS TO BE ANYTHING 2 - 6, IT GIVES THE CLANG WEIRD BUG
-  uint64_t num_parallel = 8;
+  uint64_t num_parallel = 7;
   
   uint64_t insert_times[num_parallel];
   uint64_t find_times[num_parallel];
@@ -158,11 +163,12 @@ int main() {
   uint64_t sum_total = 0;
 
   // set to 16 workers
-  __cilkrts_set_param("nworkers","16");
+  // __cilkrts_set_param("nworkers","16");
 
   cilk_for (int i = 0; i < num_parallel; i++) {
     uint64_t times[4];
     test_btree_unordered_insert<uint64_t>(100000000, seed, times);
+    // test_btree_ordered_insert<uint64_t>(100000);
     insert_times[i] = times[0];
     find_times[i] = times[1];
     sumiter_times[i] = times[2];
@@ -184,6 +190,11 @@ int main() {
         (find_total/num_parallel),
         (sumiter_total/num_parallel),
         (sum_total/num_parallel));
-  // test_btree_unordered_insert<uint64_t>(1000000, seed);
+#else 
+  // SINGLE RUN
+  test_btree_unordered_insert<uint64_t>(100000000, seed, times);
+	printf("\ninsert time %lu, find time %lu, sumiter time %lu, sum time %lu\n", times[0], times[1], times[2], times[3]);
+#endif
+	return 0;
 }
 
