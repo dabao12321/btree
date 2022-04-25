@@ -26,7 +26,7 @@
 #define WEIGHTED 0
 #define STATS 0
 
-#define MIN_KEYS 15
+#define MIN_KEYS 31
 #define MAX_KEYS (2 * MIN_KEYS - 1)
 #define MAX_CHILDREN (2 * MIN_KEYS)
 
@@ -72,7 +72,7 @@ public:
   void splitChild(uint32_t i, BTreeNode<T, W> *c);
   void traverse() const;
   uint64_t sum() const;
-  uint64_t psum() const;
+  uint64_t psum(std::vector<uint64_t>& partial_sums);
   uint32_t get_num_nodes() const;
   uint32_t get_num_internal_nodes() const;
   uint32_t get_num_internal_elements() const;
@@ -173,9 +173,14 @@ public:
       root->traverse();
   }
   uint64_t psum() const {
+    std::vector<uint64_t> partial_sums(getWorkers() * 8);
     if (root != nullptr)
-      return root->psum();
-    return 0;
+      root->psum(partial_sums);
+    uint64_t count{0};
+    for (uint32_t i = 0; i < getWorkers(); i++) {
+      count += partial_sums[i * 8];
+    }
+    return count;
   }
 
   uint64_t sum() const {
@@ -579,25 +584,18 @@ template <class T, class W> void BTreeNode<T, W>::traverse() const {
     get_children(i)->traverse();
 }
 
-template <class T, class W> uint64_t BTreeNode<T, W>::psum() const {
-  std::vector<uint64_t> partial_sums(num_keys * 8);
-  parallel_for (uint32_t i = 0; i < num_keys; i++) {
+template <class T, class W> uint64_t BTreeNode<T, W>::psum(std::vector<uint64_t>& partial_sums) {
+  // std::vector<uint64_t> partial_sums(getWorkers() * 8);
+  parallel_for (uint32_t i = 0; i < num_keys + 1; i++) {
     // If this is not leaf, then before printing key[i],
     // traverse the subtree rooted with child C[i].
+    if (i < num_keys) {
+      partial_sums[getWorkerNum() * 8] += keys[i];
+    }
     if (!is_leaf)
-      partial_sums[i * 8] += get_children(i)->psum();
-    partial_sums[i * 8] += keys[i];
+      get_children(i)->psum(partial_sums);
   }
-
-  uint64_t count{0};
-  for (uint32_t i = 0; i < num_keys; i++) {
-    count += partial_sums[i * 8];
-  }
-
-  // Print the subtree rooted with last child
-  if (!is_leaf)
-    count += get_children(num_keys)->sum();
-  return count;
+  return 0;
 }
 
 template <class T, class W> uint64_t BTreeNode<T, W>::sum() const {

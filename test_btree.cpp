@@ -161,9 +161,10 @@ void test_btree_unordered_insert(uint64_t max_size, std::seed_seq &seed, uint64_
   printf("\nparallel find,\t %lu,\tnum found %lu\n", parallel_find_time, result);
 
   start = get_usecs();
-  uint64_t sum = s.psum();
+  uint64_t psum = s.psum();
   end = get_usecs();
-  printf("\nparallel sum, %lu, sum_total, %lu\n", end - start, sum);
+  uint64_t sum = s.sum();
+  printf("\nparallel sum, %lu, psum_total, %lu \tsum_total, %lu\n", end - start, psum, sum);
 
 #else
   // SERIAL FIND AND SUM
@@ -260,8 +261,8 @@ int main() {
         (sum_total/num_parallel));
 #else 
   // SINGLE RUN
-  // test_btree_unordered_insert<uint64_t>(10000000, seed, times);
-  test_btree_unordered_insert<uint64_t>(100000000, seed, times);
+  test_btree_unordered_insert<uint64_t>(1000000, seed, times);
+  // test_btree_unordered_insert<uint64_t>(100000000, seed, times);
 	// printf("\ninsert time %lu, find time %lu, sumiter time %lu, sum time %lu\n", times[0], times[1], times[2], times[3]);
 #endif
 	return 0;
