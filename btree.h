@@ -20,13 +20,13 @@
 #include <vector>
 #include <limits>
 #include <algorithm>
-// #include "parallel.h"
+#include "parallel.h"
 #define DEBUG 0
 
 #define WEIGHTED 0
-#define STATS 1
+#define STATS 0
 
-#define MIN_KEYS 4095
+#define MIN_KEYS 15
 #define MAX_KEYS (2 * MIN_KEYS - 1)
 #define MAX_CHILDREN (2 * MIN_KEYS)
 
@@ -172,9 +172,15 @@ public:
     if (root != nullptr)
       root->traverse();
   }
-  uint64_t sum() const {
+  uint64_t psum() const {
     if (root != nullptr)
       return root->psum();
+    return 0;
+  }
+
+  uint64_t sum() const {
+    if (root != nullptr)
+      return root->sum();
     return 0;
   }
 
@@ -520,10 +526,10 @@ const uint32_t BTreeNode<T, W>::find_index_branchless_fixedsize(T k) const {
 template <class T, class W>
 const BTreeNode<T, W> *BTreeNode<T, W>::find(T k) const {
 
-  uint32_t idx = find_index_linear(k);
+  // uint32_t idx = find_index_linear(k);
   // uint32_t idx = find_index_binary(k);
   // uint32_t idx = find_index_branchless(k);
-  // uint32_t idx = find_index_branchless_fixedsize(k);
+  uint32_t idx = find_index_branchless_fixedsize(k);
 
 #if DEBUG
   uint32_t i = 0;
@@ -575,11 +581,11 @@ template <class T, class W> void BTreeNode<T, W>::traverse() const {
 
 template <class T, class W> uint64_t BTreeNode<T, W>::psum() const {
   std::vector<uint64_t> partial_sums(num_keys * 8);
-  for (uint32_t i = 0; i < num_keys; i++) {
+  parallel_for (uint32_t i = 0; i < num_keys; i++) {
     // If this is not leaf, then before printing key[i],
     // traverse the subtree rooted with child C[i].
     if (!is_leaf)
-      partial_sums[i * 8] += get_children(i)->sum();
+      partial_sums[i * 8] += get_children(i)->psum();
     partial_sums[i * 8] += keys[i];
   }
 
@@ -679,13 +685,14 @@ bool BTreeNode<T, W>::insertNonFull(T k, W w) {
 bool BTreeNode<T, W>::insertNonFull(T k) {
 #endif
 
-  uint32_t idx = find_index_linear(k);
+  // uint32_t idx = find_index_linear(k);
+  // uint32_t idx = find_index_binary(k);
+  // uint32_t idx = find_index_branchless(k);
+  uint32_t idx = find_index_branchless_fixedsize(k);
+
 #if STATS
   num_comparisons += idx;
 #endif
-  // uint32_t idx = find_index_binary(k);
-  // uint32_t idx = find_index_branchless(k);
-  // uint32_t idx = find_index_branchless_fixedsize(k);
 
 #if DEBUG
   uint32_t i;

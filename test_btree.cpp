@@ -8,9 +8,10 @@
 #include <sys/time.h>
 #include <cilk/cilk.h>
 #include <cilk/cilk_api.h>
-// #include <parallel.h>
+#include <parallel.h>
 
-#define PARALLEL 0
+#define PARALLEL_RUNS 0
+#define PARALLEL_FIND_SUM 1
 
 static long get_usecs() {
     struct timeval st;
@@ -120,6 +121,52 @@ void test_btree_unordered_insert(uint64_t max_size, std::seed_seq &seed, uint64_
 
   // printf("\ncorrect sum: ,\t %lu,", std::accumulate(inserted_data.begin(), inserted_data.end(), 0L));
 
+#if PARALLEL_FIND_SUM
+  // PARALLEL FIND AND SUM
+  	// parallel find
+  std::seed_seq seed2{1};
+
+	// generate n / 10 random elts
+  std::vector<T> data_to_search =
+      create_random_data<T>(max_size / 10, std::numeric_limits<T>::max(), seed2);
+
+	// pick n/10 from the input
+	for(uint32_t i = 0; i < max_size; i+=10) {
+		if (i < max_size) { data_to_search.push_back(data[i]); }
+	}
+
+	// shuffle them
+  std::mt19937_64 g(seed); // a source of random data
+	std::shuffle(data_to_search.begin(), data_to_search.end(), g);
+
+	std::vector<T> partial_sums(getWorkers() * 8);
+
+  start = get_usecs();
+  parallel_for (uint32_t i = 0; i < data_to_search.size(); i++) {
+    auto node = s.find(data_to_search[i]);
+		
+		partial_sums[getWorkerNum() * 8] += !(node == nullptr);
+  }
+
+  end = get_usecs();
+
+	uint64_t parallel_find_time = end - start;
+
+	// sum up results
+	T result = 0;
+	for(int i = 0; i < getWorkers(); i++) {
+		result += partial_sums[i * 8];
+	}
+
+  printf("\nparallel find,\t %lu,\tnum found %lu\n", parallel_find_time, result);
+
+  start = get_usecs();
+  uint64_t sum = s.psum();
+  end = get_usecs();
+  printf("\nparallel sum, %lu, sum_total, %lu\n", end - start, sum);
+
+#else
+  // SERIAL FIND AND SUM
   start = get_usecs();
   for (uint32_t i = 1; i < max_size; i++) {
     auto node = s.find(data[i]);
@@ -152,6 +199,8 @@ void test_btree_unordered_insert(uint64_t max_size, std::seed_seq &seed, uint64_
   end = get_usecs();
   times[3] = end - start;
   printf("\nsum_time, %lu, sum_total, %lu\n", end - start, sum);
+#endif
+
 }
 
 int main() {
@@ -165,7 +214,7 @@ int main() {
   printf("------- UNORDERED INSERT --------\n");
   uint64_t times[4];
 
-#if PARALLEL
+#if PARALLEL_RUNS
   // MULTIPLE PARALLEL RUNS, STATS ARE AVERAGED
 
   // IF YOU SET THIS TO BE ANYTHING 2 - 6, IT GIVES THE CLANG WEIRD BUG
@@ -211,8 +260,9 @@ int main() {
         (sum_total/num_parallel));
 #else 
   // SINGLE RUN
+  // test_btree_unordered_insert<uint64_t>(10000000, seed, times);
   test_btree_unordered_insert<uint64_t>(100000000, seed, times);
-	printf("\ninsert time %lu, find time %lu, sumiter time %lu, sum time %lu\n", times[0], times[1], times[2], times[3]);
+	// printf("\ninsert time %lu, find time %lu, sumiter time %lu, sum time %lu\n", times[0], times[1], times[2], times[3]);
 #endif
 	return 0;
 }
